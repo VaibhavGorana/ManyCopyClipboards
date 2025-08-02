@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reusable Explanation Board</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    button {
+      margin: 5px;
+    }
+    .box {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #aaa;
+    }
+    textarea {
+      width: 70%;
+      height: 50px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <h2>Reusable Explanation Board</h2>
+  <button onclick="addBox()">+ Add Explanation</button>
+  <div id="container"></div>
+
+  <script>
+    const container = document.getElementById('container');
+
+    function saveData() {
+      const boxes = document.querySelectorAll('.box textarea');
+      const data = [];
+      boxes.forEach((box) => data.push(box.value));
+      localStorage.setItem('explanations', JSON.stringify(data));
+    }
+
+    function loadData() {
+      const data = JSON.parse(localStorage.getItem('explanations')) || [];
+      data.forEach((text) => addBox(text));
+    }
+
+    function addBox(content = '') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'box';
+
+      const textarea = document.createElement('textarea');
+      textarea.value = content;
+      textarea.oninput = saveData;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = () => {
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile
+        document.execCommand('copy');
+      };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.onclick = () => {
+        wrapper.remove();
+        saveData();
+      };
+
+      wrapper.appendChild(textarea);
+      wrapper.appendChild(copyBtn);
+      wrapper.appendChild(deleteBtn);
+      container.appendChild(wrapper);
+
+      saveData();
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>
