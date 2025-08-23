@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reusable Explanation Board — V2</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="manifest" href="site.webmanifest">
+  <title>Many Copy Clipboards</title>
   <style>
     /* ===== CSS VARIABLES (LIGHT/DARK THEMES) ===== */
     :root {
@@ -24,7 +28,7 @@
       --focus: 0 0 0 2px #000, 0 0 0 4px var(--ring);
       --radius: 18px;
     }
-    
+
     body[data-theme="light"] {
       --bg: #f7f8fc;
       --panel: #ffffff;
@@ -45,13 +49,14 @@
     body {
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-      background: radial-gradient(80% 60% at 20% 10%, rgba(106,200,255,0.10), transparent 60%),
-                  radial-gradient(60% 50% at 80% 0%, rgba(180,134,255,0.12), transparent 60%),
-                  var(--bg);
+      background:
+        radial-gradient(80% 60% at 20% 10%, rgba(106,200,255,0.10), transparent 60%),
+        radial-gradient(60% 50% at 80% 0%, rgba(180,134,255,0.12), transparent 60%),
+        var(--bg);
       color: var(--text);
       padding: 24px;
     }
-    
+
     h1 {
       font-size: clamp(20px, 2.4vw, 28px);
       margin: 0 0 14px 0;
@@ -80,7 +85,9 @@
       z-index: 10;
     }
 
-    .left-controls, .right-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .left-controls, .right-controls {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
 
     .search {
       flex: 1;
@@ -123,14 +130,16 @@
 
     input[type="file"] { display: none; }
 
-    /* ===== GRID OF CARDS ===== */
+    /* ===== GRID / LIST CONTAINER ===== */
     #container {
       margin-top: 16px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 14px;
     }
+    #container[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    #container[data-view="list"] { grid-template-columns: 1fr; }
 
+    /* ===== CARD ===== */
     .box {
       background: var(--card);
       border: 1px solid var(--border);
@@ -138,27 +147,23 @@
       box-shadow: var(--shadow);
       padding: 10px 10px 12px 10px;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto 1fr auto;
       gap: 8px;
       position: relative;
       animation: pop-in .35s ease both;
       transform-origin: 50% 60%;
       transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
     }
-
     .box[data-locked="true"] { opacity: 0.95; }
     .box:hover { box-shadow: 0 14px 36px rgba(0,0,0,0.25); transform: translateY(-2px); }
 
     .box::after {
-      /* subtle decorative gradient edge */
       content: "";
       position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
       background: linear-gradient(145deg, rgba(255,255,255,0.05), transparent 30%, rgba(255,255,255,0.03));
     }
 
-    .box-header {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    }
+    .box-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
     .drag-handle {
       user-select: none; cursor: grab;
@@ -169,17 +174,36 @@
     }
     .dragging { opacity: 0.6; transform: scale(0.98); }
 
+    /* Title (inline, optional) */
+    .title-input {
+      width: 100%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--text);
+      outline: none;
+      transition: box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      font-size: 15px;
+    }
+    .title-input::placeholder { color: var(--muted); }
+    .title-input:focus { border-color: var(--accent); box-shadow: var(--focus); background: rgba(255,255,255,0.04); }
+    .box[data-locked="true"] .title-input { pointer-events: none; filter: grayscale(0.1) contrast(0.98) brightness(0.98); }
+
+    /* Fixed-height scrollable textarea */
     .textarea {
       width: 100%;
-      min-height: 88px;
-      resize: none;
+      height: 200px;            /* fixed height */
+      max-height: 200px;        /* never grows past 200px */
+      resize: none;             /* keep size stable */
+      overflow-y: auto;         /* scroll inside */
       background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
       border: 1px dashed var(--border);
       border-radius: 12px;
       padding: 12px;
       color: var(--text);
       outline: none;
-      transition: box-shadow .2s ease, border-color .2s ease, background .2s ease, min-height .2s ease;
+      transition: box-shadow .2s ease, border-color .2s ease, background .2s ease;
       font-size: 14px; line-height: 1.5;
     }
     .textarea:focus { border-color: var(--accent); box-shadow: var(--focus); background: rgba(255,255,255,0.04); }
@@ -206,10 +230,9 @@
       display: grid; gap: 10px;
       animation: slide-up .24s ease both;
     }
+    .modal .textarea { height: 48vh; max-height: none; }
 
-    .modal .textarea { min-height: 300px; }
-
-    /* ===== TOAST / COPY BUBBLE ===== */
+    /* ===== TOAST ===== */
     .toast {
       position: fixed; z-index: 60;
       padding: 8px 10px; border-radius: 10px;
@@ -227,12 +250,12 @@
 
     /* ===== SMALL UTILS ===== */
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-    .row { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+    .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Reusable Explanation Board — <span class="chip">Version 2</span></h1>
+    <h1>Many Copy Clipboards<span class="chip">Version 2</span></h1>
 
     <!-- Toolbar -->
     <div class="toolbar" role="region" aria-label="Controls">
@@ -240,16 +263,17 @@
         <button class="btn primary" id="addBtn">+ Add Explanation</button>
         <label class="search" for="searchInput">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
-          <input id="searchInput" type="text" placeholder="Search explanations... (Ctrl+/)"/>
+          <input id="searchInput" type="text" placeholder="Search by title or content... (Ctrl+/)"/>
         </label>
       </div>
 
       <div class="right-controls">
+        <button class="btn ghost" id="viewToggle" title="Toggle List/Grid (V)">⧉ Grid</button>
         <button class="btn ghost" id="editToggle" title="Toggle Edit Mode (E)">🔓 Edit</button>
         <button class="btn ghost" id="themeToggle" title="Toggle Theme (T)">🌗 Theme</button>
 
         <button class="btn ghost" id="expandAll" title="Expand first visible to modal">⤢ Expand</button>
-        
+
         <button class="btn ghost" id="exportJson">⬇ Export JSON</button>
         <button class="btn ghost" id="exportTxt">⬇ Export TXT</button>
 
@@ -259,7 +283,7 @@
     </div>
 
     <!-- Cards Container -->
-    <div id="container" aria-live="polite"></div>
+    <div id="container" aria-live="polite" data-view="grid"></div>
   </div>
 
   <!-- Modal (created dynamically) -->
@@ -270,28 +294,39 @@
     const addBtn = document.getElementById('addBtn');
     const searchInput = document.getElementById('searchInput');
     const themeToggle = document.getElementById('themeToggle');
+    const viewToggle = document.getElementById('viewToggle');
     const editToggle = document.getElementById('editToggle');
     const exportJsonBtn = document.getElementById('exportJson');
     const exportTxtBtn = document.getElementById('exportTxt');
     const importFile = document.getElementById('importFile');
     const expandAllBtn = document.getElementById('expandAll');
 
-    const LS_KEY = 'explanations';
-    const THEME_KEY = 'explain_theme';
+    const LS_KEY   = 'explanations';        // now stores [{title, text}, ...]
+    const THEME_KEY= 'explain_theme';
     const LOCK_KEY = 'explain_locked';
+    const VIEW_KEY = 'explain_view';        // 'grid' | 'list'
 
     // Debounce helper
     const debounce = (fn, wait=180) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); } };
 
+    // Read (with backward-compat for old string array)
     function getData() {
-      const data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-      return Array.isArray(data) ? data : [];
+      try {
+        const raw = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+        if (!Array.isArray(raw)) return [];
+        if (raw.length && typeof raw[0] === 'object' && raw[0] && 'text' in raw[0]) return raw;
+        // convert legacy [string] -> [{title:'', text:string}]
+        return raw.map(v => ({ title: '', text: String(v ?? '') }));
+      } catch { return []; }
     }
     function setData(arr) { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
 
     function saveData() {
       const boxes = [...container.querySelectorAll('.box')];
-      const data = boxes.map(box => box.querySelector('textarea').value);
+      const data = boxes.map(box => ({
+        title: box.querySelector('.title-input').value,
+        text : box.querySelector('textarea').value
+      }));
       setData(data);
     }
     const saveDataDebounced = debounce(saveData, 120);
@@ -305,12 +340,9 @@
       document.body.dataset.locked = locked ? 'true' : 'false';
       localStorage.setItem(LOCK_KEY, locked ? '1' : '0');
       document.querySelectorAll('.box').forEach(box => box.dataset.locked = locked ? 'true' : 'false');
+      document.querySelectorAll('.textarea').forEach(t => t.readOnly = locked);
+      document.querySelectorAll('.title-input').forEach(t => t.readOnly = locked);
       editToggle.textContent = locked ? '🔒 View' : '🔓 Edit';
-    }
-
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = (textarea.scrollHeight + 2) + 'px';
     }
 
     function showToast(message, nearEl=null) {
@@ -339,12 +371,12 @@
     // ================== DRAG & DROP ==================
     let dragEl = null;
     let placeholder = null;
+    let dndListenersAttached = false;
 
     function onDragStart(e) {
       dragEl = e.currentTarget;
       dragEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      // Simple placeholder
       placeholder = document.createElement('div');
       placeholder.className = 'box';
       placeholder.style.visibility = 'hidden';
@@ -375,14 +407,21 @@
       dragEl = null; placeholder = null;
     }
 
+    function attachDndListenersOnce() {
+      if (dndListenersAttached) return;
+      container.addEventListener('dragover', onDragOver);
+      container.addEventListener('drop', onDrop);
+      dndListenersAttached = true;
+    }
+
     // ================== BOX CREATION ==================
-    function addBox(content = '') {
+    function addBox(content = '', title = '') {
       const wrapper = document.createElement('div');
       wrapper.className = 'box';
       wrapper.setAttribute('draggable', 'true');
       wrapper.dataset.locked = (localStorage.getItem(LOCK_KEY) === '1') ? 'true' : 'false';
 
-      // Header with drag handle + chips
+      // Header
       const header = document.createElement('div');
       header.className = 'box-header';
 
@@ -393,56 +432,57 @@
 
       const chip = document.createElement('div');
       chip.className = 'chip';
-      const ts = new Date();
-      chip.textContent = ts.toLocaleString();
+      chip.textContent = new Date().toLocaleString();
       header.appendChild(chip);
 
+      // Title (inline, optional)
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.className = 'title-input';
+      titleInput.placeholder = 'Title (optional)';
+      titleInput.value = title;
+      titleInput.readOnly = (localStorage.getItem(LOCK_KEY) === '1');
+      titleInput.addEventListener('input', () => { saveDataDebounced(); filterBoxes(); });
+
+      // Textarea (fixed height, scrollable)
       const textarea = document.createElement('textarea');
       textarea.className = 'textarea';
       textarea.value = content;
       textarea.readOnly = (localStorage.getItem(LOCK_KEY) === '1');
-      textarea.addEventListener('input', () => { autoResize(textarea); saveDataDebounced(); filterBoxes(); });
-      textarea.addEventListener('focus', () => autoResize(textarea));
-      setTimeout(() => autoResize(textarea), 0);
+      textarea.addEventListener('input', () => { saveDataDebounced(); filterBoxes(); });
 
-      // Actions row
+      // Actions
       const actions = document.createElement('div');
       actions.className = 'actions';
 
       const copyBtn = createButton('Copy');
       copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(textarea.value);
-        } catch {
-          // fallback
-          textarea.select(); document.execCommand('copy');
-        }
+        try { await navigator.clipboard.writeText(textarea.value); }
+        catch { textarea.select(); document.execCommand('copy'); }
         showToast('Copied ✓', copyBtn);
       });
 
       const expandBtn = createButton('Expand');
-      expandBtn.addEventListener('click', () => openModal(textarea));
+      expandBtn.addEventListener('click', () => openModal(titleInput, textarea));
 
       const deleteBtn = createButton('Delete');
       deleteBtn.addEventListener('click', () => { wrapper.remove(); saveData(); });
 
       actions.append(copyBtn, expandBtn, deleteBtn);
 
-      wrapper.append(header, textarea, actions);
+      wrapper.append(header, titleInput, textarea, actions);
 
       // Drag events
       wrapper.addEventListener('dragstart', onDragStart);
-      container.addEventListener('dragover', onDragOver);
-      container.addEventListener('drop', onDrop);
-      wrapper.addEventListener('dragend', cleanupDrag);
+      attachDndListenersOnce();
 
       container.appendChild(wrapper);
       saveData();
       return wrapper;
     }
 
-    // ================== MODAL ==================
-    function openModal(sourceTextarea) {
+    // ================== MODAL (edit title + content) ==================
+    function openModal(sourceTitle, sourceTextarea) {
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
       overlay.tabIndex = -1;
@@ -450,45 +490,56 @@
       const modal = document.createElement('div');
       modal.className = 'modal';
 
-      const row = document.createElement('div');
-      row.className = 'row';
+      const top = document.createElement('div');
+      top.className = 'row';
       const closeBtn = createButton('Close');
       const saveBtn = createButton('Save', 'btn primary');
-      row.append(closeBtn, saveBtn);
+      top.append(closeBtn, saveBtn);
+
+      const title = document.createElement('input');
+      title.type = 'text';
+      title.className = 'title-input';
+      title.placeholder = 'Title (optional)';
+      title.value = sourceTitle.value;
 
       const big = document.createElement('textarea');
       big.className = 'textarea';
+      big.style.height = '48vh';
       big.value = sourceTextarea.value;
       setTimeout(()=> big.focus(), 50);
-      big.addEventListener('input', ()=> autoResize(big));
-      setTimeout(()=> autoResize(big), 0);
 
-      modal.append(row, big);
+      modal.append(top, title, big);
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
 
       function close() { overlay.remove(); }
       closeBtn.addEventListener('click', close);
-      saveBtn.addEventListener('click', ()=> { sourceTextarea.value = big.value; autoResize(sourceTextarea); saveData(); close(); });
+      saveBtn.addEventListener('click', ()=> {
+        sourceTitle.value = title.value;
+        sourceTextarea.value = big.value;
+        saveData();
+        close();
+      });
       overlay.addEventListener('click', (e)=> { if (e.target === overlay) close(); });
       document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } });
     }
 
-    // ================== SEARCH ==================
+    // ================== SEARCH (title + content) ==================
     function filterBoxes() {
       const q = searchInput.value.trim().toLowerCase();
       const boxes = container.querySelectorAll('.box');
       boxes.forEach(box => {
-        const val = box.querySelector('textarea').value.toLowerCase();
-        const match = !q || val.includes(q);
+        const title = box.querySelector('.title-input').value.toLowerCase();
+        const val   = box.querySelector('textarea').value.toLowerCase();
+        const match = !q || title.includes(q) || val.includes(q);
         box.style.display = match ? '' : 'none';
       });
     }
     const filterBoxesDebounced = debounce(filterBoxes, 80);
 
     // ================== IMPORT / EXPORT ==================
-    function download(filename, text) {
-      const blob = new Blob([text], {type: 'text/plain'});
+    function download(filename, text, type='text/plain') {
+      const blob = new Blob([text], {type});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
@@ -496,12 +547,16 @@
 
     function exportJSON() {
       const data = getData();
-      download('explanations.json', JSON.stringify(data, null, 2));
+      download('explanations.json', JSON.stringify(data, null, 2), 'application/json');
     }
 
     function exportTXT() {
       const data = getData();
-      download('explanations.txt', data.map((t,i)=>`#${i+1}\n${t}`).join('\n\n----\n\n'));
+      const blocks = data.map((item, i)=>{
+        const head = item.title ? `Title: ${item.title}\n` : '';
+        return `${head}${item.text}`.trim();
+      });
+      download('explanations.txt', blocks.join('\n\n----\n\n'));
     }
 
     async function importFromFile(file) {
@@ -509,23 +564,51 @@
       const text = await file.text();
       let arr = [];
       if (file.name.endsWith('.json')) {
-        try { const parsed = JSON.parse(text); if (Array.isArray(parsed)) arr = parsed; } catch {}
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            if (parsed.length && typeof parsed[0] === 'object' && parsed[0] && 'text' in parsed[0]) {
+              arr = parsed.map(x => ({ title: String(x.title||''), text: String(x.text||'') }));
+            } else {
+              arr = parsed.map(v => ({ title: '', text: String(v ?? '') })); // legacy string array
+            }
+          }
+        } catch {}
       } else {
-        // Split TXT by separators or blank lines
-        arr = text.split(/\n\s*----\s*\n|\n{2,}/g).map(s => s.replace(/^#\d+\n/, '').trim()).filter(Boolean);
+        // TXT blocks split by separator or blank lines
+        const blocks = text.split(/\n\s*----\s*\n|\n{2,}/g).map(s => s.trim()).filter(Boolean);
+        arr = blocks.map(b => {
+          const lines = b.split('\n');
+          let title = '';
+          // support "Title: ..." or markdown heading as first line
+          const m1 = lines[0].match(/^\s*(?:Title|Name)\s*:\s*(.*)$/i);
+          const m2 = lines[0].match(/^\s*#{1,3}\s+(.*)$/);
+          if (m1) { title = m1[1].trim(); lines.shift(); }
+          else if (m2) { title = m2[1].trim(); lines.shift(); }
+          return { title, text: lines.join('\n').trim() };
+        });
       }
       if (!arr.length) { showToast('No items found'); return; }
       container.innerHTML = '';
-      arr.forEach(t => addBox(t));
+      arr.forEach(item => addBox(item.text, item.title));
       showToast('Imported ✓');
       saveData();
+    }
+
+    // ================== VIEW TOGGLE ==================
+    function applyView(view) {
+      container.setAttribute('data-view', view);
+      localStorage.setItem(VIEW_KEY, view);
+      viewToggle.textContent = (view === 'grid') ? '⧉ Grid' : '≣ List';
+      viewToggle.title = `Toggle ${view === 'grid' ? 'List' : 'Grid'} (V)`;
     }
 
     // ================== INIT ==================
     function loadData() {
       container.innerHTML = '';
       const data = getData();
-      if (!data.length) addBox(''); else data.forEach(t => addBox(t));
+      if (!data.length) addBox('');
+      else data.forEach(item => addBox(item.text, item.title));
     }
 
     // Theme init
@@ -540,11 +623,20 @@
       setLocked(locked);
     })();
 
+    // View init
+    (function initView(){
+      const view = localStorage.getItem(VIEW_KEY) || 'grid';
+      applyView(view);
+    })();
+
     // Load saved boxes
     loadData();
 
     // ================== EVENTS ==================
-    addBtn.addEventListener('click', () => { const b = addBox(''); b.querySelector('textarea').focus(); });
+    addBtn.addEventListener('click', () => {
+      const b = addBox('');
+      b.querySelector('.title-input').focus();
+    });
     searchInput.addEventListener('input', filterBoxesDebounced);
 
     themeToggle.addEventListener('click', () => {
@@ -552,10 +644,14 @@
       applyTheme(next);
     });
 
+    viewToggle.addEventListener('click', () => {
+      const current = container.getAttribute('data-view') || 'grid';
+      applyView(current === 'grid' ? 'list' : 'grid');
+    });
+
     editToggle.addEventListener('click', () => {
       const locked = !(localStorage.getItem(LOCK_KEY) === '1');
       setLocked(locked);
-      document.querySelectorAll('.textarea').forEach(t => t.readOnly = locked);
     });
 
     exportJsonBtn.addEventListener('click', exportJSON);
@@ -564,7 +660,11 @@
 
     expandAllBtn.addEventListener('click', ()=> {
       const firstVisible = [...container.querySelectorAll('.box')].find(b => b.style.display !== 'none');
-      if (firstVisible) openModal(firstVisible.querySelector('textarea'));
+      if (firstVisible) {
+        const t = firstVisible.querySelector('.title-input');
+        const a = firstVisible.querySelector('textarea');
+        openModal(t, a);
+      }
     });
 
     // Keyboard shortcuts
@@ -572,6 +672,7 @@
       if (e.ctrlKey && e.key === '/') { e.preventDefault(); searchInput.focus(); }
       if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); editToggle.click(); }
       if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); themeToggle.click(); }
+      if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); viewToggle.click(); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); addBtn.click(); }
     });
 
