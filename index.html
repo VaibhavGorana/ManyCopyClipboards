@@ -3,79 +3,580 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reusable Explanation Board</title>
+  <title>Reusable Explanation Board — V2</title>
   <style>
+    /* ===== CSS VARIABLES (LIGHT/DARK THEMES) ===== */
+    :root {
+      --bg: #0b0c10;
+      --panel: #111217;
+      --card: #141622;
+      --text: #eaeef7;
+      --muted: #a9b0c3;
+      --accent: #6ac8ff;
+      --accent-2: #b486ff;
+      --ring: rgba(106, 200, 255, 0.45);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      --border: rgba(255,255,255,0.08);
+      --success: #54e1a6;
+      --danger: #ff7a7a;
+      --warning: #ffd166;
+      --glass: rgba(255,255,255,0.06);
+      --focus: 0 0 0 2px #000, 0 0 0 4px var(--ring);
+      --radius: 18px;
+    }
+    
+    body[data-theme="light"] {
+      --bg: #f7f8fc;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --text: #0f1220;
+      --muted: #5f667c;
+      --accent: #4e8cff;
+      --accent-2: #7b61ff;
+      --ring: rgba(78, 140, 255, 0.35);
+      --shadow: 0 12px 28px rgba(14, 23, 38, 0.12);
+      --border: rgba(15, 18, 32, 0.08);
+      --glass: rgba(15,18,32,0.04);
+    }
+
+    /* ===== GLOBALS ===== */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
-      font-family: sans-serif;
-      padding: 20px;
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(80% 60% at 20% 10%, rgba(106,200,255,0.10), transparent 60%),
+                  radial-gradient(60% 50% at 80% 0%, rgba(180,134,255,0.12), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      padding: 24px;
     }
-    button {
-      margin: 5px;
+    
+    h1 {
+      font-size: clamp(20px, 2.4vw, 28px);
+      margin: 0 0 14px 0;
+      letter-spacing: 0.2px;
     }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ===== TOP BAR ===== */
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: linear-gradient(180deg, var(--panel), transparent), var(--panel);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: saturate(140%) blur(6px);
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+    }
+
+    .left-controls, .right-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .search {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      transition: box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .search:focus-within { box-shadow: var(--focus); border-color: var(--accent); background: rgba(255,255,255,0.08); }
+    .search input {
+      background: transparent; border: 0; outline: none; color: var(--text);
+      width: 100%; font-size: 14px;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      position: relative;
+      appearance: none;
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.05));
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .06s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      box-shadow: inset 0 -5px 12px rgba(0,0,0,0.05), var(--shadow);
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: var(--focus); }
+    .btn:active { transform: translateY(0px) scale(0.99); }
+
+    .btn.primary { border-color: transparent; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; box-shadow: 0 8px 22px rgba(78, 140, 255, 0.35); }
+    .btn.ghost { background: var(--glass); }
+    .btn.warning { background: linear-gradient(135deg, var(--warning), #ffb703); color: #1e1e1e; border-color: rgba(0,0,0,0.08); }
+
+    input[type="file"] { display: none; }
+
+    /* ===== GRID OF CARDS ===== */
+    #container {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
     .box {
-      margin-bottom: 15px;
-      padding: 10px;
-      border: 1px solid #aaa;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px 10px 12px 10px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+      position: relative;
+      animation: pop-in .35s ease both;
+      transform-origin: 50% 60%;
+      transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
     }
-    textarea {
-      width: 70%;
-      height: 50px;
-      resize: vertical;
+
+    .box[data-locked="true"] { opacity: 0.95; }
+    .box:hover { box-shadow: 0 14px 36px rgba(0,0,0,0.25); transform: translateY(-2px); }
+
+    .box::after {
+      /* subtle decorative gradient edge */
+      content: "";
+      position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05), transparent 30%, rgba(255,255,255,0.03));
     }
+
+    .box-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+
+    .drag-handle {
+      user-select: none; cursor: grab;
+      padding: 6px 8px; border-radius: 10px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    .dragging { opacity: 0.6; transform: scale(0.98); }
+
+    .textarea {
+      width: 100%;
+      min-height: 88px;
+      resize: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      color: var(--text);
+      outline: none;
+      transition: box-shadow .2s ease, border-color .2s ease, background .2s ease, min-height .2s ease;
+      font-size: 14px; line-height: 1.5;
+    }
+    .textarea:focus { border-color: var(--accent); box-shadow: var(--focus); background: rgba(255,255,255,0.04); }
+    .box[data-locked="true"] .textarea { pointer-events: none; filter: grayscale(0.1) contrast(0.98) brightness(0.98); }
+
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .chip {
+      font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+      padding: 4px 8px; border-radius: 999px; background: var(--glass);
+    }
+
+    .hidden { display: none !important; }
+
+    /* ===== MODAL ===== */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 50; animation: fade-in .2s ease both; }
+    .modal {
+      width: min(920px, 92vw);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      display: grid; gap: 10px;
+      animation: slide-up .24s ease both;
+    }
+
+    .modal .textarea { min-height: 300px; }
+
+    /* ===== TOAST / COPY BUBBLE ===== */
+    .toast {
+      position: fixed; z-index: 60;
+      padding: 8px 10px; border-radius: 10px;
+      background: var(--panel); border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      color: var(--text); font-weight: 600; font-size: 12px;
+      animation: float-up .6s ease both;
+    }
+
+    /* ===== KEYFRAMES ===== */
+    @keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slide-up { from { transform: translateY(12px); } to { transform: none; } }
+    @keyframes float-up { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+    /* ===== SMALL UTILS ===== */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .row { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   </style>
 </head>
 <body>
-  <h2>Reusable Explanation Board</h2>
-  <button onclick="addBox()">+ Add Explanation</button>
-  <div id="container"></div>
+  <div class="app">
+    <h1>Reusable Explanation Board — <span class="chip">Version 2</span></h1>
+
+    <!-- Toolbar -->
+    <div class="toolbar" role="region" aria-label="Controls">
+      <div class="left-controls" style="flex:1;">
+        <button class="btn primary" id="addBtn">+ Add Explanation</button>
+        <label class="search" for="searchInput">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
+          <input id="searchInput" type="text" placeholder="Search explanations... (Ctrl+/)"/>
+        </label>
+      </div>
+
+      <div class="right-controls">
+        <button class="btn ghost" id="editToggle" title="Toggle Edit Mode (E)">🔓 Edit</button>
+        <button class="btn ghost" id="themeToggle" title="Toggle Theme (T)">🌗 Theme</button>
+
+        <button class="btn ghost" id="expandAll" title="Expand first visible to modal">⤢ Expand</button>
+        
+        <button class="btn ghost" id="exportJson">⬇ Export JSON</button>
+        <button class="btn ghost" id="exportTxt">⬇ Export TXT</button>
+
+        <label class="btn ghost" for="importFile" title="Import JSON/TXT">⬆ Import</label>
+        <input id="importFile" type="file" accept=".json,.txt" />
+      </div>
+    </div>
+
+    <!-- Cards Container -->
+    <div id="container" aria-live="polite"></div>
+  </div>
+
+  <!-- Modal (created dynamically) -->
 
   <script>
+    // ================== STATE & HELPERS ==================
     const container = document.getElementById('container');
+    const addBtn = document.getElementById('addBtn');
+    const searchInput = document.getElementById('searchInput');
+    const themeToggle = document.getElementById('themeToggle');
+    const editToggle = document.getElementById('editToggle');
+    const exportJsonBtn = document.getElementById('exportJson');
+    const exportTxtBtn = document.getElementById('exportTxt');
+    const importFile = document.getElementById('importFile');
+    const expandAllBtn = document.getElementById('expandAll');
+
+    const LS_KEY = 'explanations';
+    const THEME_KEY = 'explain_theme';
+    const LOCK_KEY = 'explain_locked';
+
+    // Debounce helper
+    const debounce = (fn, wait=180) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); } };
+
+    function getData() {
+      const data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    }
+    function setData(arr) { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
 
     function saveData() {
-      const boxes = document.querySelectorAll('.box textarea');
-      const data = [];
-      boxes.forEach((box) => data.push(box.value));
-      localStorage.setItem('explanations', JSON.stringify(data));
+      const boxes = [...container.querySelectorAll('.box')];
+      const data = boxes.map(box => box.querySelector('textarea').value);
+      setData(data);
+    }
+    const saveDataDebounced = debounce(saveData, 120);
+
+    function applyTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_KEY, theme);
     }
 
-    function loadData() {
-      const data = JSON.parse(localStorage.getItem('explanations')) || [];
-      data.forEach((text) => addBox(text));
+    function setLocked(locked) {
+      document.body.dataset.locked = locked ? 'true' : 'false';
+      localStorage.setItem(LOCK_KEY, locked ? '1' : '0');
+      document.querySelectorAll('.box').forEach(box => box.dataset.locked = locked ? 'true' : 'false');
+      editToggle.textContent = locked ? '🔒 View' : '🔓 Edit';
     }
 
-    function addBox(content = '') {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'box';
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+    }
 
-      const textarea = document.createElement('textarea');
-      textarea.value = content;
-      textarea.oninput = saveData;
+    function showToast(message, nearEl=null) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = message;
+      if (nearEl) {
+        const rect = nearEl.getBoundingClientRect();
+        el.style.left = Math.round(rect.left + rect.width/2 - 40) + 'px';
+        el.style.top = Math.round(rect.top - 8 + window.scrollY) + 'px';
+      } else {
+        el.style.right = '16px'; el.style.bottom = '16px';
+      }
+      document.body.appendChild(el);
+      setTimeout(()=> el.remove(), 900);
+    }
 
-      const copyBtn = document.createElement('button');
-      copyBtn.textContent = 'Copy';
-      copyBtn.onclick = () => {
-        textarea.select();
-        textarea.setSelectionRange(0, 99999); // For mobile
-        document.execCommand('copy');
-      };
+    function createButton(label, className='btn ghost') {
+      const b = document.createElement('button');
+      b.className = className;
+      b.type = 'button';
+      b.textContent = label;
+      return b;
+    }
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = 'Delete';
-      deleteBtn.onclick = () => {
-        wrapper.remove();
-        saveData();
-      };
+    // ================== DRAG & DROP ==================
+    let dragEl = null;
+    let placeholder = null;
 
-      wrapper.appendChild(textarea);
-      wrapper.appendChild(copyBtn);
-      wrapper.appendChild(deleteBtn);
-      container.appendChild(wrapper);
+    function onDragStart(e) {
+      dragEl = e.currentTarget;
+      dragEl.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Simple placeholder
+      placeholder = document.createElement('div');
+      placeholder.className = 'box';
+      placeholder.style.visibility = 'hidden';
+      placeholder.style.height = dragEl.offsetHeight + 'px';
+      container.insertBefore(placeholder, dragEl.nextSibling);
+    }
 
+    function onDragOver(e) {
+      e.preventDefault();
+      const target = e.target.closest('.box');
+      if (!target || target === dragEl || target === placeholder) return;
+      const rect = target.getBoundingClientRect();
+      const after = (e.clientY - rect.top) / rect.height > 0.5;
+      container.insertBefore(placeholder, after ? target.nextSibling : target);
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      if (!placeholder) return;
+      container.insertBefore(dragEl, placeholder);
+      cleanupDrag();
       saveData();
     }
 
-    window.onload = loadData;
+    function cleanupDrag() {
+      dragEl && dragEl.classList.remove('dragging');
+      placeholder && placeholder.remove();
+      dragEl = null; placeholder = null;
+    }
+
+    // ================== BOX CREATION ==================
+    function addBox(content = '') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'box';
+      wrapper.setAttribute('draggable', 'true');
+      wrapper.dataset.locked = (localStorage.getItem(LOCK_KEY) === '1') ? 'true' : 'false';
+
+      // Header with drag handle + chips
+      const header = document.createElement('div');
+      header.className = 'box-header';
+
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.textContent = '⇅ Drag';
+      header.appendChild(handle);
+
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      const ts = new Date();
+      chip.textContent = ts.toLocaleString();
+      header.appendChild(chip);
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'textarea';
+      textarea.value = content;
+      textarea.readOnly = (localStorage.getItem(LOCK_KEY) === '1');
+      textarea.addEventListener('input', () => { autoResize(textarea); saveDataDebounced(); filterBoxes(); });
+      textarea.addEventListener('focus', () => autoResize(textarea));
+      setTimeout(() => autoResize(textarea), 0);
+
+      // Actions row
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const copyBtn = createButton('Copy');
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(textarea.value);
+        } catch {
+          // fallback
+          textarea.select(); document.execCommand('copy');
+        }
+        showToast('Copied ✓', copyBtn);
+      });
+
+      const expandBtn = createButton('Expand');
+      expandBtn.addEventListener('click', () => openModal(textarea));
+
+      const deleteBtn = createButton('Delete');
+      deleteBtn.addEventListener('click', () => { wrapper.remove(); saveData(); });
+
+      actions.append(copyBtn, expandBtn, deleteBtn);
+
+      wrapper.append(header, textarea, actions);
+
+      // Drag events
+      wrapper.addEventListener('dragstart', onDragStart);
+      container.addEventListener('dragover', onDragOver);
+      container.addEventListener('drop', onDrop);
+      wrapper.addEventListener('dragend', cleanupDrag);
+
+      container.appendChild(wrapper);
+      saveData();
+      return wrapper;
+    }
+
+    // ================== MODAL ==================
+    function openModal(sourceTextarea) {
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      overlay.tabIndex = -1;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+
+      const row = document.createElement('div');
+      row.className = 'row';
+      const closeBtn = createButton('Close');
+      const saveBtn = createButton('Save', 'btn primary');
+      row.append(closeBtn, saveBtn);
+
+      const big = document.createElement('textarea');
+      big.className = 'textarea';
+      big.value = sourceTextarea.value;
+      setTimeout(()=> big.focus(), 50);
+      big.addEventListener('input', ()=> autoResize(big));
+      setTimeout(()=> autoResize(big), 0);
+
+      modal.append(row, big);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      function close() { overlay.remove(); }
+      closeBtn.addEventListener('click', close);
+      saveBtn.addEventListener('click', ()=> { sourceTextarea.value = big.value; autoResize(sourceTextarea); saveData(); close(); });
+      overlay.addEventListener('click', (e)=> { if (e.target === overlay) close(); });
+      document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } });
+    }
+
+    // ================== SEARCH ==================
+    function filterBoxes() {
+      const q = searchInput.value.trim().toLowerCase();
+      const boxes = container.querySelectorAll('.box');
+      boxes.forEach(box => {
+        const val = box.querySelector('textarea').value.toLowerCase();
+        const match = !q || val.includes(q);
+        box.style.display = match ? '' : 'none';
+      });
+    }
+    const filterBoxesDebounced = debounce(filterBoxes, 80);
+
+    // ================== IMPORT / EXPORT ==================
+    function download(filename, text) {
+      const blob = new Blob([text], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function exportJSON() {
+      const data = getData();
+      download('explanations.json', JSON.stringify(data, null, 2));
+    }
+
+    function exportTXT() {
+      const data = getData();
+      download('explanations.txt', data.map((t,i)=>`#${i+1}\n${t}`).join('\n\n----\n\n'));
+    }
+
+    async function importFromFile(file) {
+      if (!file) return;
+      const text = await file.text();
+      let arr = [];
+      if (file.name.endsWith('.json')) {
+        try { const parsed = JSON.parse(text); if (Array.isArray(parsed)) arr = parsed; } catch {}
+      } else {
+        // Split TXT by separators or blank lines
+        arr = text.split(/\n\s*----\s*\n|\n{2,}/g).map(s => s.replace(/^#\d+\n/, '').trim()).filter(Boolean);
+      }
+      if (!arr.length) { showToast('No items found'); return; }
+      container.innerHTML = '';
+      arr.forEach(t => addBox(t));
+      showToast('Imported ✓');
+      saveData();
+    }
+
+    // ================== INIT ==================
+    function loadData() {
+      container.innerHTML = '';
+      const data = getData();
+      if (!data.length) addBox(''); else data.forEach(t => addBox(t));
+    }
+
+    // Theme init
+    (function initTheme(){
+      const saved = localStorage.getItem(THEME_KEY);
+      applyTheme(saved || 'dark');
+    })();
+
+    // Lock init
+    (function initLock(){
+      const locked = localStorage.getItem(LOCK_KEY) === '1';
+      setLocked(locked);
+    })();
+
+    // Load saved boxes
+    loadData();
+
+    // ================== EVENTS ==================
+    addBtn.addEventListener('click', () => { const b = addBox(''); b.querySelector('textarea').focus(); });
+    searchInput.addEventListener('input', filterBoxesDebounced);
+
+    themeToggle.addEventListener('click', () => {
+      const next = (document.body.getAttribute('data-theme') === 'light') ? 'dark' : 'light';
+      applyTheme(next);
+    });
+
+    editToggle.addEventListener('click', () => {
+      const locked = !(localStorage.getItem(LOCK_KEY) === '1');
+      setLocked(locked);
+      document.querySelectorAll('.textarea').forEach(t => t.readOnly = locked);
+    });
+
+    exportJsonBtn.addEventListener('click', exportJSON);
+    exportTxtBtn.addEventListener('click', exportTXT);
+    importFile.addEventListener('change', (e)=> importFromFile(e.target.files[0]));
+
+    expandAllBtn.addEventListener('click', ()=> {
+      const firstVisible = [...container.querySelectorAll('.box')].find(b => b.style.display !== 'none');
+      if (firstVisible) openModal(firstVisible.querySelector('textarea'));
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if (e.ctrlKey && e.key === '/') { e.preventDefault(); searchInput.focus(); }
+      if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); editToggle.click(); }
+      if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); themeToggle.click(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); addBtn.click(); }
+    });
+
+    // Persist on unload (safety)
+    window.addEventListener('beforeunload', saveData);
   </script>
 </body>
 </html>
