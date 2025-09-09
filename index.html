@@ -221,7 +221,7 @@
     /* ===== MODAL ===== */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 50; animation: fade-in .2s ease both; }
     .modal {
-      width: min(920px, 92vw);
+      width: min(820px, 82vw);
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
@@ -250,7 +250,7 @@
 
     /* ===== SMALL UTILS ===== */
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-    .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+    .row { display: flex; gap: 8px; align-items: center; justify-content:end; }
   </style>
 </head>
 <body>
@@ -263,7 +263,7 @@
         <button class="btn primary" id="addBtn">+ Add Explanation</button>
         <label class="search" for="searchInput">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
-          <input id="searchInput" type="text" placeholder="Search by title or content... (Ctrl+/)"/>
+          <input id="searchInput" type="text" placeholder="Search by title or content..."/>
         </label>
       </div>
 
@@ -667,14 +667,6 @@
       }
     });
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e)=>{
-      if (e.ctrlKey && e.key === '/') { e.preventDefault(); searchInput.focus(); }
-      if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); editToggle.click(); }
-      if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); themeToggle.click(); }
-      if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); viewToggle.click(); }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); addBtn.click(); }
-    });
 
     // Persist on unload (safety)
     window.addEventListener('beforeunload', saveData);
